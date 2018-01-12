@@ -36,6 +36,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Discord.Addons.Interactive, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Discord.Addons.Interactive.1.0.1\lib\netstandard1.1\Discord.Addons.Interactive.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Discord.Net.Commands, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Discord.Net.Commands.1.0.2\lib\netstandard1.1\Discord.Net.Commands.dll</HintPath>
       <Private>True</Private>
@@ -185,8 +189,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Data\Database.cs" />
+    <Compile Include="Data\Objects\Announcement.cs" />
     <Compile Include="Handlers\CommandHandler.cs" />
     <Compile Include="Handlers\UserHandler.cs" />
+    <Compile Include="Modules\AnnouncementModule.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Models\Affiliate.cs" />
     <Compile Include="Modules\DeveloperModule.cs" />

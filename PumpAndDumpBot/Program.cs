@@ -7,6 +7,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using PumpAndDumpBot.Handlers;
 using Microsoft.Extensions.DependencyInjection;
+using Discord.Addons.Interactive;
 
 namespace PumpAndDumpBot
 {
@@ -53,6 +54,7 @@ namespace PumpAndDumpBot
                 .AddSingleton(_commands)
                 .AddSingleton<CommandHandler>()
                 .AddSingleton<UserHandler>()
+                .AddSingleton<InteractiveService>()
                 .BuildServiceProvider();
         }
 
