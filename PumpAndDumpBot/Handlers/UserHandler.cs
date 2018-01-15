@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using PumpAndDumpBot.Data;
 
 namespace PumpAndDumpBot.Handlers
 {
@@ -32,12 +33,18 @@ namespace PumpAndDumpBot.Handlers
 
         private async Task UserJoinedAsync(SocketGuildUser user)
         {
+            if (_client.CurrentUser.Id != 400573066134028288) return; //if not the live bot exit
+
+            if (user.Guild.Users.Count < 500)
+            {
+                var veteranRole =_client.GetGuild(399748192524042262).GetRole(400384561881546783);
+                await user.AddRoleAsync(veteranRole);
+            }
+
             if (!initialized) await SetupBeginStateAsync();
 
             var invites = await user.Guild.GetInvitesAsync();
             if (invites == null) return;
-
-            ulong channel = (ulong)(_client.CurrentUser.Id == 400573066134028288 ? 401021271556620288 : 400552471010869248); // live then test
 
             foreach (IUser inviter in invites.Select(x => x.Inviter).Distinct())
             {
@@ -46,13 +53,13 @@ namespace PumpAndDumpBot.Handlers
                 {
                     if (currentTotal == newTotal) continue;
 
-                    await (_client.GetChannel(channel) as SocketTextChannel).SendMessageAsync($"{user.Mention} probably joined using an invite link created by {inviter.Mention}.");
+                    await Database.InsertInviteAsync(user.Id, inviter.Id);
                     currentState.TryUpdate(inviter.Id, currentTotal + 1, currentTotal);
                     return;
                 }
                 else // new user's counter
                 {
-                    await (_client.GetChannel(channel) as SocketTextChannel).SendMessageAsync($"{user.Mention} probably joined using an invite link created by {inviter.Mention}.");
+                    await Database.InsertInviteAsync(user.Id, inviter.Id);
                     currentState.TryAdd(inviter.Id, 1);
                     return;
                 }

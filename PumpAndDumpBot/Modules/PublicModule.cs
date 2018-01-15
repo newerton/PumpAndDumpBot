@@ -6,6 +6,7 @@ using Discord;
 using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
+using PumpAndDumpBot.Data;
 using PumpAndDumpBot.Models;
 
 namespace PumpAndDumpBot.Modules
@@ -32,36 +33,37 @@ namespace PumpAndDumpBot.Modules
         {
             try
             {
-                var guildUser = Context.Message.Author as SocketGuildUser;
+                var author = Context.Message.Author as SocketGuildUser;
 
-                var invites = await Context.Guild.GetInvitesAsync();
-                var totalInvites = invites.Where(x => x.Inviter.Id == guildUser.Id).Sum(x => x.Uses);
+                var invites = await Database.GetInviteCountAsync(author.Id);
+                string message = $"{author.Mention}\nYou have {invites} invites.";
 
-                string message = $"{guildUser.Mention}\nYou have {totalInvites} invites.";
-
-                var currentRank = _ranks.LastOrDefault(x => x.Invites <= totalInvites);
+                var currentRank = _ranks.LastOrDefault(x => x.Invites <= invites);
                 if (currentRank != null)
                 {
-                    var roles = guildUser.Roles;
-                    if (!roles.Select(x => x.Id).Contains(currentRank.RoleID))
+                    if (!author.Roles.Select(x => x.Id).Contains(currentRank.RoleID))
                     {
-                        var newRole = Context.Guild.GetRole(currentRank.RoleID);
-                        await guildUser.AddRoleAsync(newRole);
-                        message += $"\nCongratulations, you have been promoted to {newRole.Name}.";
+                        var newRank = Context.Guild.GetRole(currentRank.RoleID);
+                        //add new role
+                        await author.AddRoleAsync(newRank);
+
+                        message += $"\nCongratulations, you have been promoted to {newRank.Name}.";
                     }
                 }
 
-                var nextRank = _ranks.FirstOrDefault(x => x.Invites > totalInvites);
+                //remove any of the other roles the user might have that are below or above his rank
+                HashSet<ulong> rankRoleIds = new HashSet<ulong>(_ranks.Select(r => r.RoleID));
+                var rolesToRemove = author.Roles.Where(x => rankRoleIds.Contains(x.Id) && x.Id != currentRank?.RoleID).ToList();
+                if (rolesToRemove.Count() > 0)
+                    await author.RemoveRolesAsync(rolesToRemove);
+
+                var nextRank = _ranks.FirstOrDefault(x => x.Invites > invites);
                 if (nextRank != null)
                 {
-                    message += $"\n{nextRank.Invites - totalInvites} more to become {Context.Guild.GetRole(nextRank.RoleID).Name}.";
+                    message += $"\n{nextRank.Invites - invites} more to become {Context.Guild.GetRole(nextRank.RoleID).Name}.";
                 }
 
                 await ReplyAsync(message);
-            }
-            catch (HttpException ex)
-            {
-                await ReplyAsync(ex.Message);
             }
             catch (Exception ex)
             {

@@ -194,6 +194,7 @@
     <Compile Include="Handlers\CommandHandler.cs" />
     <Compile Include="Handlers\UserHandler.cs" />
     <Compile Include="Modules\AnnouncementModule.cs" />
+    <Compile Include="Modules\DatabaseModule.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Models\Affiliate.cs" />
     <Compile Include="Modules\DeveloperModule.cs" />
