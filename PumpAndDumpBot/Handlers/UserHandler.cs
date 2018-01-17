@@ -53,14 +53,16 @@ namespace PumpAndDumpBot.Handlers
                 {
                     if (currentTotal == newTotal) continue;
 
-                    await Database.InsertInviteAsync(user.Id, inviter.Id);
                     currentState.TryUpdate(inviter.Id, currentTotal + 1, currentTotal);
+                    await Database.InsertInviteAsync(user.Id, inviter.Id);
+                    
                     return;
                 }
                 else // new user's counter
                 {
-                    await Database.InsertInviteAsync(user.Id, inviter.Id);
                     currentState.TryAdd(inviter.Id, 1);
+                    await Database.InsertInviteAsync(user.Id, inviter.Id);
+                    
                     return;
                 }
             }
