@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using PumpAndDumpBot.Attributes;
 
 namespace PumpAndDumpBot.Modules
 {
@@ -78,6 +79,22 @@ namespace PumpAndDumpBot.Modules
                 await msg.AddReactionAsync(new Emoji("❌"));
 
                 await ReplyAsync("Succesfully submitted the suggestion.");
+            }
+            catch (Exception ex)
+            {
+                await ReplyAsync(ex.Message);
+            }
+        }
+
+        [Command("game", RunMode = RunMode.Async)]
+        [Summary("Change the bot's game text.")]
+        [Remarks("game <new game text>")]
+        [RequiredChannel(401021271556620288, 400552471010869248)]
+        public async Task GameAsync([Remainder] string game)
+        {
+            try
+            {
+                await Context.Client.SetGameAsync(game);
             }
             catch (Exception ex)
             {

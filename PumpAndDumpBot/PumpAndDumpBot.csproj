@@ -189,17 +189,19 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Modules\InviteModule.cs" />
+    <Compile Include="Preconditions\RequiredChannelAttribute.cs" />
     <Compile Include="Data\Database.cs" />
     <Compile Include="Data\Objects\Announcement.cs" />
     <Compile Include="Handlers\CommandHandler.cs" />
     <Compile Include="Handlers\UserHandler.cs" />
+    <Compile Include="Models\AnnouncementTimer.cs" />
     <Compile Include="Modules\AnnouncementModule.cs" />
     <Compile Include="Modules\DatabaseModule.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Models\Affiliate.cs" />
     <Compile Include="Modules\DeveloperModule.cs" />
     <Compile Include="Modules\InfoModule.cs" />
-    <Compile Include="Modules\PublicModule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

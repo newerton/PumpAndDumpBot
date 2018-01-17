@@ -1,240 +1,253 @@
 ﻿using System;
 using System.Configuration;
+using System.Data.SqlClient;
+using System.Globalization;
 using System.Threading.Tasks;
-using System.Timers;
 using Discord;
 using Discord.Addons.Interactive;
 using Discord.Commands;
 using Discord.WebSocket;
+using PumpAndDumpBot.Attributes;
+using PumpAndDumpBot.Data;
 using PumpAndDumpBot.Data.Objects;
+using PumpAndDumpBot.Models;
 
 namespace PumpAndDumpBot.Modules
 {
+    [Group("announcement")]
+    [RequiredChannel(401021271556620288, 400552471010869248)]
     public class AnnouncementModule : InteractiveBase<SocketCommandContext>
     {
-        private readonly DiscordSocketClient _client;
-        private static Timer announcementTimer;
-        private static volatile bool _continueTimer = true;
-        private static Announcement announcement;
+        private static AnnouncementTimer _announcementTimer;
 
-        public AnnouncementModule(DiscordSocketClient client)
+        public static async Task InitializeAsync(DiscordSocketClient client)
         {
-            _client = client;
-            Task.Run(() => Initialize()).Wait();
-        }
-
-        public async Task Initialize()
-        {
-            /*announcement = await Database.GetActiveAnnouncementAsync();
-            if (diff )
-            var diff = announcement.Date.Subtract(DateTime.Now);*/
-            if (announcementTimer == null)
+            try
             {
-                announcementTimer = new Timer(10000);
-                announcementTimer.AutoReset = false;
-                announcementTimer.Elapsed += AnnouncementTimer_Elapsed;
+                var announcement = await Database.GetAnnouncementAsync();
+                if (announcement != null)
+                {
+                    if (announcement.Date <= DateTime.Now)
+                        await Database.DeleteAnnouncementAsync();
+                    else
+                    {
+                        _announcementTimer = new AnnouncementTimer(client, announcement);
+                        await _announcementTimer.StartAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await Program.Log(new LogMessage(LogSeverity.Error, "InitializeAsync", ex.Message, ex));
             }
         }
 
-        private void AnnouncementTimer_Elapsed(object sender, ElapsedEventArgs e)
+        private static void AnnouncementCompleted(object sender, EventArgs e)
         {
-            Task.Run(() => AnnouncementCheck()).Wait();
+            Task.Run(() => DeleteAsync()).Wait();
         }
 
-        private async Task AnnouncementCheck()
+        private static async Task DeleteAsync()
         {
-            var diff = announcement.Date.Subtract(DateTime.Now);
+            await Database.DeleteAnnouncementAsync();
+            _announcementTimer = null;
+        }
 
-            if (_continueTimer)
+        [Command("create", RunMode = RunMode.Async)]
+        [Summary("Create a new announcement.")]
+        [RequireContext(ContextType.Guild)]
+        public async Task CreateAsync()
+        {
+            try
             {
-                if (diff.TotalSeconds > 0)
+                if (_announcementTimer != null)
                 {
-                    announcementTimer.Start();
-                    await _client.SetGameAsync($"Pump in: {diff.Days}d {diff.Hours}:{diff.Minutes}:{diff.Seconds}");
+                    await ReplyAsync($"{Context.Message.Author.Mention}, there is already a scheduled announcement.");
+                    return;
                 }
-                else
-                {
-                    _continueTimer = false;
-                    await _client.SetGameAsync($"Pumping!");
 
-                    var embed = new EmbedBuilder()
-                    .AddField("Coin", announcement.Coin)
-                    .AddField("Btc goal", announcement.Btc, true)
-                    .AddField("Eth goal", announcement.Eth, true)
-                    .WithFooter("Trade safe, don't buy higher then the target!").Build();
-                    await (_client.GetChannel(400461176921915402) as SocketTextChannel).SendMessageAsync("", false, embed);
-                    await Task.Delay(3000);
-                    await (_client.GetChannel(400461161998450688) as SocketTextChannel).SendMessageAsync("", false, embed);
-                    await Task.Delay(3000);
-                    await (_client.GetChannel(400461138040717314) as SocketTextChannel).SendMessageAsync("", false, embed);
-                    await Task.Delay(4000);
-                    await (_client.GetChannel(400461122718793728) as SocketTextChannel).SendMessageAsync("", false, embed);
-                    await Task.Delay(2000);
-                    await (_client.GetChannel(400461103538241546) as SocketTextChannel).SendMessageAsync("", false, embed);
-                    await Task.Delay(2000);
-                    await (_client.GetChannel(400461084160557057) as SocketTextChannel).SendMessageAsync("", false, embed);
-                    await Task.Delay(1000);
-                    await (_client.GetChannel(400461051642118145) as SocketTextChannel).SendMessageAsync("", false, embed);
-                    await StopAsync();
+                // coin question
+                SocketMessage msg = null;
+                await ReplyAsync("What coin to announce?");
+                msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 30));
+                if (msg == null)
+                {
+                    await ReplyAsync("Message timed out..");
+                    return;
                 }
+                string coin = msg.Content;
+
+                // pair question
+                string pair = "";
+                await ReplyAsync("Use BTC or ETH?");
+                while (pair != "BTC" && pair != "ETH")
+                {
+                    msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 30));
+                    if (msg == null)
+                    {
+                        await ReplyAsync("Message timed out..");
+                        return;
+                    }
+
+                    pair = msg.Content.Trim().ToUpper();
+                    if (pair != "BTC" && pair != "ETH")
+                    {
+                        await ReplyAsync("Invalid input.\nUse BTC or ETH?");
+                    }
+                }
+
+                // pair goal question
+                string pairGoal = "";
+                await ReplyAsync($"{pair} goal?");
+                while (pairGoal == "")
+                {
+
+                    msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 30));
+                    if (msg == null)
+                    {
+                        await ReplyAsync("Message timed out..");
+                        return;
+                    }
+
+                    if (decimal.TryParse(msg.Content, NumberStyles.Currency, CultureInfo.InvariantCulture, out decimal pairGoalTemp) && pairGoalTemp > 0)
+                    {
+                        pairGoal = msg.Content;
+                    }
+                    else
+                    {
+                        await ReplyAsync($"Invalid input.\n{pair} goal?");
+                    }
+                }
+
+                // delay questions
+                int days = -1;
+                while (days < 0)
+                {
+                    await ReplyAsync("How many days delay?");
+                    msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 30));
+                    if (msg == null)
+                    {
+                        await ReplyAsync("Message timed out..");
+                        return;
+                    }
+
+                    if (int.TryParse(msg.Content, out int daysTemp) && daysTemp >= 0)
+                    {
+                        days = daysTemp;
+                    }
+                    else
+                    {
+                        await ReplyAsync("Invalid input, try again.");
+                    }
+                }
+
+                int hours = -1;
+                await ReplyAsync("How many hours delay?");
+                while (hours < 0)
+                {
+                    msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 30));
+                    if (msg == null)
+                    {
+                        await ReplyAsync("Message timed out..");
+                        return;
+                    }
+
+                    if (int.TryParse(msg.Content, out int hoursTemp) && hoursTemp >= 0 && hoursTemp < 24)
+                    {
+                        hours = hoursTemp;
+                    }
+                    else
+                    {
+                        await ReplyAsync("Invalid input, the value must be in the range [0-23].\nHow many hours delay?");
+                    }
+                }
+
+                int minutes = -1;
+                await ReplyAsync("How many minutes delay?");
+                while (minutes < 0)
+                {
+                    msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 30));
+                    if (msg == null)
+                    {
+                        await ReplyAsync("Message timed out..");
+                        return;
+                    }
+
+                    if (int.TryParse(msg.Content, out int minutesTemp) && minutesTemp >= 0 && minutesTemp < 60)
+                    {
+                        minutes = minutesTemp;
+                    }
+                    else
+                    {
+                        await ReplyAsync("Invalid input, the value must be in the range [0-59].\nHow many minutes delay?");
+                    }
+                }
+
+                if (days == 0 && hours == 0 && minutes == 0)
+                {
+                    await ReplyAsync($"Announcement creation failed, there must be a delay.");
+                    return;
+                }
+
+                // preview and confirmation
+                await ReplyAsync($"Are the following details correct, answer with **yes** if they are?\nPump in: {days}d {hours}h {minutes}m", false, AnnouncementTimer.GetAnnouncementEmbed(coin, pair, pairGoal));
+                msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 30));
+                if (msg == null)
+                {
+                    await ReplyAsync("Message timed out..");
+                    return;
+                }
+
+                if (msg.Content.ToUpper() != "YES" && msg.Content.ToUpper() != "Y")
+                {
+                    await ReplyAsync("Announcement creation cancelled.");
+                    return;
+                }
+
+                Announcement announcement = new Announcement()
+                {
+                    Date = DateTime.Now.Add(new TimeSpan(days, hours, minutes, 0)),
+                    Coin = coin,
+                    Pair = pair,
+                    PairGoal = pairGoal
+                };
+
+                await Database.InsertAnnouncementAsync(announcement);
+                _announcementTimer = new AnnouncementTimer(Context.Client, announcement);
+                _announcementTimer.Completed += AnnouncementCompleted;
+                await _announcementTimer.StartAsync();
+
+                await ReplyAsync("Scheduled a new announcement.");
+            }
+            catch (SqlException ex)
+            when (ex.Number == 2627) // unique key constraint
+            {
+                await ReplyAsync("Announcement creation cancelled, there is already one active.");
+            }
+            catch (Exception ex)
+            {
+                await ReplyAsync(ex.Message);
             }
         }
 
-        [Command("announce", RunMode = RunMode.Async)]
-        [Summary("Manage the announcements")]
-        public async Task AnnounceAsync()
+        [Command("remove")]
+        [Summary("Remove the active announcement.")]
+        [RequireContext(ContextType.Guild)]
+        public async Task RemoveAsync()
         {
-            //var announcement = await Database.GetActiveAnnouncementAsync();
-            SocketMessage msg = null;
-            await ReplyAsync("What coin to announce?");
-            msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 30));
-            if (msg == null)
+            if (_announcementTimer == null)
             {
-                await ReplyAsync("Message timed out..");
+                await ReplyAsync("There is currently no scheduled announcement.");
                 return;
             }
 
-            string announcementMessage = msg.Content;
+            await Database.DeleteAnnouncementAsync();
+            _announcementTimer.Stop();
+            await DeleteAsync();
+            await ReplyAsync("Removed the active announcement.");
 
-            string btc = "";
-            await ReplyAsync("Btc goal?");
-            while (btc == "")
-            {
-                
-                msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 30));
-                if (msg == null)
-                {
-                    await ReplyAsync("Message timed out..");
-                    return;
-                }
-
-                if (double.TryParse(msg.Content, out double btcTemp) && btcTemp > 0)
-                {
-                    btc = msg.Content;
-                }
-                else
-                {
-                    await ReplyAsync("Invalid input.\nBtc goal?");
-                }
-            }
-
-            string eth = "";
-            await ReplyAsync("Eth goal?");
-            while (eth == "")
-            {
-
-                msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 30));
-                if (msg == null)
-                {
-                    await ReplyAsync("Message timed out..");
-                    return;
-                }
-
-                if (double.TryParse(msg.Content, out double ethTemp) && ethTemp > 0)
-                {
-                    eth = msg.Content;
-                }
-                else
-                {
-                    await ReplyAsync("Invalid input.\nEth goal?");
-                }
-            }
-
-            int days = -1;
-            while (days < 0)
-            {
-                await ReplyAsync("How many days delay?");
-                msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 10));
-                if (msg == null)
-                {
-                    await ReplyAsync("Message timed out..");
-                    return;
-                }
-
-                if (int.TryParse(msg.Content, out int daysTemp) && daysTemp >= 0)
-                {
-                    days = daysTemp;
-                }
-                else
-                {
-                    await ReplyAsync("Invalid input, try again.");
-                }
-            }
-            
-            int hours = -1;
-            await ReplyAsync("How many hours delay?");
-            while (hours < 0)
-            {
-                msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 10));
-                if (msg == null)
-                {
-                    await ReplyAsync("Message timed out..");
-                    return;
-                }
-
-                if (int.TryParse(msg.Content, out int hoursTemp) && hoursTemp >= 0 && hoursTemp < 24)
-                {
-                    hours = hoursTemp;
-                }
-                else
-                {
-                    await ReplyAsync("Invalid input, the value must be in the range [0-23].\nHow many hours delay?");
-                }
-            }
-
-            int minutes = -1;
-            await ReplyAsync("How many minutes delay?");
-            while (minutes < 0)
-            {
-                msg = await NextMessageAsync(timeout: new TimeSpan(0, 0, 10));
-                if (msg == null)
-                {
-                    await ReplyAsync("Message timed out..");
-                    return;
-                }
-
-                if (int.TryParse(msg.Content, out int minutesTemp) && minutesTemp >= 0 && minutesTemp < 60)
-                {
-                    minutes = minutesTemp;
-                }
-                else
-                {
-                    await ReplyAsync("Invalid input, the value must be in the range [0-59].\nHow many minutes delay?");
-                }
-            }
-
-            if (days != 0 || hours != 0 || minutes != 0)
-                await ReplyAsync($"Announcement will be shown in: {days}d {hours}h {minutes}m");
-            else
-                await ReplyAsync($"Announcement creation failed, there must be a delay.");
-
-            TimeSpan delay = new TimeSpan(days, hours, minutes, 0);
-
-            announcement = new Announcement()
-            {
-                Date = DateTime.Now.Add(delay),
-                Coin = announcementMessage,
-                Btc = btc,
-                Eth = eth
-            };
-
-            await _client.SetGameAsync($"Pump in: {days}d {hours}:{minutes}:0");
-            await StartAsync();
-        }
-
-        public async Task StartAsync()
-        {
-            _continueTimer = true;
-            announcementTimer.Start();
-        }
-
-        [Command("stoptimer")]
-        public async Task StopAsync()
-        {
-            _continueTimer = false;
-            announcementTimer.Stop();
             await Task.Delay(10000);
-            await _client.SetGameAsync(ConfigurationManager.AppSettings["GAME"]);
+            await Context.Client.SetGameAsync(ConfigurationManager.AppSettings["GAME"]);
         }
     }
 }

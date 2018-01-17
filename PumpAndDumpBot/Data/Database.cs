@@ -26,7 +26,7 @@ namespace PumpAndDumpBot.Data
             return new SqlConnection(connectionString);
         }
 
-        public static async Task<Announcement> GetActiveAnnouncementAsync()
+        public static async Task<Announcement> GetAnnouncementAsync()
         {
             Announcement result = null;
             using (SqlConnection conn = GetSqlConnection())
@@ -36,6 +36,7 @@ namespace PumpAndDumpBot.Data
                 {
                     using (SqlCommand cmd = conn.CreateCommand())
                     {
+                        cmd.CommandText = "SELECT * FROM Announcement WHERE AnnouncementID = 1";
                         using (SqlDataReader reader = cmd.ExecuteReader())
                         {
                             if (reader.HasRows)
@@ -43,10 +44,10 @@ namespace PumpAndDumpBot.Data
                                 await reader.ReadAsync();
                                 result = new Announcement()
                                 {
-                                    Date = new DateTime((long)reader["Date"]),
-                                    Coin = (string)reader["Message"],
-                                    Btc = (string)reader["BTC"],
-                                    Eth = (string)reader["ETH"]
+                                    Date = (DateTime)reader["AnnounceDate"],
+                                    Coin = (string)reader["Coin"],
+                                    Pair = (string)reader["Pair"],
+                                    PairGoal = (string)reader["PairGoal"]
                                 };
                             }
                             reader.Close();
@@ -63,6 +64,73 @@ namespace PumpAndDumpBot.Data
                 }
             }
             return result;
+        }
+
+        public static async Task InsertAnnouncementAsync(Announcement announcement)
+        {
+            if (announcement == null)
+                throw new ArgumentNullException();
+
+            using (SqlConnection conn = GetSqlConnection())
+            {
+                await conn.OpenAsync();
+                using (SqlTransaction tr = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        using (SqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.Transaction = tr;
+                            cmd.Parameters.AddWithValue("@AnnounceDate", DbType.DateTime).Value = announcement.Date;
+                            cmd.Parameters.AddWithValue("@Coin", DbType.String).Value = announcement.Coin;
+                            cmd.Parameters.AddWithValue("@Pair", DbType.String).Value = announcement.Pair;
+                            cmd.Parameters.AddWithValue("@PairGoal", DbType.String).Value = announcement.PairGoal;
+                            cmd.CommandText = "INSERT INTO Announcement(AnnouncementID, AnnounceDate, Coin, Pair, PairGoal) VALUES(1, @AnnounceDate, @Coin, @Pair, @PairGoal)";
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        tr.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        tr.Rollback();
+                        throw ex;
+                    }
+                    finally
+                    {
+                        conn.Close();
+                    }
+                }
+            }
+        }
+
+        public static async Task DeleteAnnouncementAsync()
+        {
+            using (SqlConnection conn = GetSqlConnection())
+            {
+                await conn.OpenAsync();
+                using (SqlTransaction tr = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        using (SqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.Transaction = tr;
+                            cmd.CommandText = "DELETE FROM Announcement";
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        tr.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        tr.Rollback();
+                        throw ex;
+                    }
+                    finally
+                    {
+                        conn.Close();
+                    }
+                }
+            }
         }
 
         public static async Task InsertInviteAsync(ulong newUserId, ulong referrerId)

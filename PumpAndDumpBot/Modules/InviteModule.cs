@@ -2,19 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Discord;
 using Discord.Commands;
-using Discord.Net;
 using Discord.WebSocket;
+using PumpAndDumpBot.Attributes;
 using PumpAndDumpBot.Data;
 using PumpAndDumpBot.Models;
 
 namespace PumpAndDumpBot.Modules
 {
-    
-    [Name("Public")]
-    [Summary("Public module")]
-    public class PublicModule : ModuleBase<SocketCommandContext>
+    [RequireContext(ContextType.Guild)]
+    [RequiredChannel(400560041947693064, 400552471010869248)]
+    public class InviteModule : ModuleBase<SocketCommandContext>
     {
         private static readonly List<Affiliate> _ranks = new List<Affiliate>()
         {
@@ -28,7 +26,6 @@ namespace PumpAndDumpBot.Modules
 
         [Command("invites", RunMode = RunMode.Async)]
         [Summary("Returns the total invites for this users.")]
-        [RequireContext(ContextType.Guild)]
         public async Task InvitesAsync()
         {
             try

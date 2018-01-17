@@ -6,7 +6,7 @@ namespace PumpAndDumpBot.Data.Objects
     {
         public DateTime Date { get; set; }
         public string Coin { get; set; }
-        public string Btc { get; set; }
-        public string Eth { get; set; }
+        public string Pair { get; set; }
+        public string PairGoal { get; set; }
     }
 }

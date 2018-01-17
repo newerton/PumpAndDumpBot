@@ -8,6 +8,7 @@ using Discord.WebSocket;
 using PumpAndDumpBot.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using Discord.Addons.Interactive;
+using PumpAndDumpBot.Modules;
 
 namespace PumpAndDumpBot
 {
@@ -43,6 +44,7 @@ namespace PumpAndDumpBot
             await _client.StartAsync();
 
             await _client.SetGameAsync(ConfigurationManager.AppSettings["GAME"]);
+            await AnnouncementModule.InitializeAsync(_client);
 
             await Task.Delay(-1).ConfigureAwait(false);
         }
