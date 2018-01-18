@@ -16,7 +16,6 @@ namespace PumpAndDumpBot
     {
         private CommandService _commands;
         private DiscordSocketClient _client;
-        private IServiceProvider _services;
 
         public static readonly char COMMAND_PREFIX = '!';
         public static readonly Color EMBED_COLOR = Color.Red;
@@ -35,7 +34,8 @@ namespace PumpAndDumpBot
 
             var _services = InstallServices();
             _services.GetRequiredService<CommandHandler>();
-            _services.GetRequiredService<UserHandler>();
+            _services.GetRequiredService<VeteranHandler>();
+            _services.GetRequiredService<InviteHandler>();
 
             _client.Log += Log;
             _commands.Log += Log;
@@ -55,7 +55,8 @@ namespace PumpAndDumpBot
                 .AddSingleton(_client)
                 .AddSingleton(_commands)
                 .AddSingleton<CommandHandler>()
-                .AddSingleton<UserHandler>()
+                .AddSingleton<VeteranHandler>()
+                .AddSingleton<InviteHandler>()
                 .AddSingleton<InteractiveService>()
                 .BuildServiceProvider();
         }

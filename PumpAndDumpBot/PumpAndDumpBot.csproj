@@ -189,12 +189,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Handlers\InviteHandler.cs" />
+    <Compile Include="Handlers\VeteranHandler.cs" />
     <Compile Include="Modules\InviteModule.cs" />
     <Compile Include="Preconditions\RequiredChannelAttribute.cs" />
     <Compile Include="Data\Database.cs" />
     <Compile Include="Data\Objects\Announcement.cs" />
     <Compile Include="Handlers\CommandHandler.cs" />
-    <Compile Include="Handlers\UserHandler.cs" />
     <Compile Include="Models\AnnouncementTimer.cs" />
     <Compile Include="Modules\AnnouncementModule.cs" />
     <Compile Include="Modules\DatabaseModule.cs" />
