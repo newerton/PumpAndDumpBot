@@ -231,7 +231,7 @@ namespace PumpAndDumpBot.Data
                         }
                     }
                     catch (DbException ex)
-                    when (ex.ErrorCode == 2627)
+                    when (ex.HResult == -2146232060)
                     {
                         // when it's a primary key violation do nothing
                     }
