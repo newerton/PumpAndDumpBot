@@ -3,12 +3,12 @@ using System.Configuration;
 using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Addons.Interactive;
 using Discord.Commands;
 using Discord.WebSocket;
-using PumpAndDumpBot.Handlers;
 using Microsoft.Extensions.DependencyInjection;
-using Discord.Addons.Interactive;
 using PumpAndDumpBot.Modules;
+using PumpAndDumpBot.Services;
 
 namespace PumpAndDumpBot
 {
@@ -33,9 +33,10 @@ namespace PumpAndDumpBot
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly());
 
             var _services = InstallServices();
-            _services.GetRequiredService<CommandHandler>();
-            _services.GetRequiredService<VeteranHandler>();
-            _services.GetRequiredService<InviteHandler>();
+            _services.GetService<ReliabilityService>();
+            _services.GetService<CommandHandlerService>();
+            _services.GetService<VeteranService>();
+            _services.GetService<InviteService>();
 
             _client.Log += Log;
             _commands.Log += Log;
@@ -54,9 +55,10 @@ namespace PumpAndDumpBot
             return new ServiceCollection()
                 .AddSingleton(_client)
                 .AddSingleton(_commands)
-                .AddSingleton<CommandHandler>()
-                .AddSingleton<VeteranHandler>()
-                .AddSingleton<InviteHandler>()
+                .AddSingleton<ReliabilityService>()
+                .AddSingleton<CommandHandlerService>()
+                .AddSingleton<VeteranService>()
+                .AddSingleton<InviteService>()
                 .AddSingleton<InteractiveService>()
                 .BuildServiceProvider();
         }

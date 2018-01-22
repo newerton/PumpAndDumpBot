@@ -89,7 +89,7 @@ namespace PumpAndDumpBot.Modules
         [Command("game", RunMode = RunMode.Async)]
         [Summary("Change the bot's game text.")]
         [Remarks("game <new game text>")]
-        [RequiredChannel(401021271556620288, 400552471010869248)]
+        [RequireChannel(401021271556620288, 400552471010869248)]
         public async Task GameAsync([Remainder] string game)
         {
             try

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Configuration;
 using System.Data;
 using System.Data.Common;
@@ -26,6 +27,7 @@ namespace PumpAndDumpBot.Data
             return new SqlConnection(connectionString);
         }
 
+        #region Announcement queries
         public static async Task<Announcement> GetAnnouncementAsync()
         {
             Announcement result = null;
@@ -132,6 +134,43 @@ namespace PumpAndDumpBot.Data
                 }
             }
         }
+        #endregion
+
+        #region Invite queries
+        public static async Task<int> GetInviteCountAsync(ulong userId)
+        {
+            int result = 0;
+            using (SqlConnection conn = GetSqlConnection())
+            {
+                await conn.OpenAsync();
+                try
+                {
+                    using (SqlCommand cmd = conn.CreateCommand())
+                    {
+                        cmd.Parameters.AddWithValue("@ReferrerID", DbType.Decimal).Value = (decimal)userId;
+                        cmd.CommandText = "SELECT COUNT(1) as Count FROM Invites WHERE ReferrerID = @ReferrerID GROUP BY ReferrerID";
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            if (reader.HasRows)
+                            {
+                                await reader.ReadAsync();
+                                result = (int)reader["Count"];
+                            }
+                            reader.Close();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+                finally
+                {
+                    conn.Close();
+                }
+            }
+            return result;
+        }
 
         public static async Task InsertInviteAsync(ulong newUserId, ulong referrerId)
         {
@@ -170,42 +209,39 @@ namespace PumpAndDumpBot.Data
                     }
                 }
             }
-        }
+        }   
 
-        public static async Task<int> GetInviteCountAsync(ulong userId)
+        public static async Task InsertInvitesAsync(ConcurrentQueue<Invite> invites)
         {
-            int result = 0;
+            DateTime startTime = DateTime.Now;
             using (SqlConnection conn = GetSqlConnection())
             {
                 await conn.OpenAsync();
-                try
+                while (invites.TryPeek(out Invite invite) && invite.JoinDate <= startTime)
                 {
-                    using (SqlCommand cmd = conn.CreateCommand())
+                    try
                     {
-                        cmd.Parameters.AddWithValue("@ReferrerID", DbType.Decimal).Value = (decimal)userId;
-                        cmd.CommandText = "SELECT COUNT(1) as Count FROM Invites WHERE ReferrerID = @ReferrerID GROUP BY ReferrerID";
-                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        using (SqlCommand cmd = conn.CreateCommand())
                         {
-                            if (reader.HasRows)
-                            {
-                                await reader.ReadAsync();
-                                result = (int)reader["Count"];
-                            }
-                            reader.Close();
+                            cmd.Parameters.AddWithValue("@NewUserID", DbType.Decimal).Value = (decimal)invite.UserId;
+                            cmd.Parameters.AddWithValue("@ReferrerID", DbType.Decimal).Value = (decimal)invite.ReferrerId;
+                            cmd.Parameters.AddWithValue("@JoinDate", DbType.DateTime).Value = invite.JoinDate;
+                            cmd.CommandText = "INSERT INTO Invites(UserID, ReferrerID, JoinDate) VALUES(@NewUserID, @ReferrerID, @JoinDate)";
+                            await cmd.ExecuteNonQueryAsync();
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    throw ex;
-                }
-                finally
-                {
-                    conn.Close();
+                    catch (DbException ex)
+                    when (ex.ErrorCode == 2627)
+                    {
+                        // when it's a primary key violation do nothing
+                    }
+
+                    // remove the invite from the list
+                    invites.TryDequeue(out Invite removedInvite);
                 }
             }
-            return result;
         }
+        #endregion
 
         #region Database management
         public static async Task RunSQLAsync(string command)

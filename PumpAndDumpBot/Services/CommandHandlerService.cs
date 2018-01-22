@@ -3,15 +3,15 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using Discord.WebSocket;
 
-namespace PumpAndDumpBot.Handlers
+namespace PumpAndDumpBot.Services
 {
-    public class CommandHandler
+    public class CommandHandlerService
     {
         private readonly DiscordSocketClient _client;
         private readonly CommandService _commands;
         private IServiceProvider _services;
 
-        public CommandHandler(IServiceProvider services, DiscordSocketClient client, CommandService commands)
+        public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands)
         {
             _client = client;
             _commands = commands;

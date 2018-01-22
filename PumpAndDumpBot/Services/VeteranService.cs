@@ -1,12 +1,12 @@
 ﻿using System.Threading.Tasks;
 using Discord.WebSocket;
 
-namespace PumpAndDumpBot.Handlers
+namespace PumpAndDumpBot.Services
 {
-    public class VeteranHandler
+    public class VeteranService
     {
         private readonly DiscordSocketClient _client;
-        public VeteranHandler(DiscordSocketClient client)
+        public VeteranService(DiscordSocketClient client)
         {
             _client = client;
             _client.UserJoined += UserJoinedAsync;

@@ -15,7 +15,7 @@ using PumpAndDumpBot.Models;
 namespace PumpAndDumpBot.Modules
 {
     [Group("announcement")]
-    [RequiredChannel(401021271556620288, 400552471010869248)]
+    [RequireChannel(401021271556620288, 400552471010869248)]
     public class AnnouncementModule : InteractiveBase<SocketCommandContext>
     {
         private static AnnouncementTimer _announcementTimer;
