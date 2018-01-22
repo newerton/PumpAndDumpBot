@@ -233,7 +233,7 @@ namespace PumpAndDumpBot.Data
                     catch (DbException ex)
                     when (ex.HResult == -2146232060)
                     {
-                        // when it's a primary key violation do nothing
+                         // when it's a primary key violation do nothing
                     }
 
                     // remove the invite from the list
