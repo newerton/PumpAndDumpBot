@@ -200,7 +200,6 @@
     <Compile Include="Data\Objects\Invite.cs" />
     <Compile Include="Services\InviteService.cs" />
     <Compile Include="Services\ReliabilityService.cs" />
-    <Compile Include="Services\VeteranService.cs" />
     <Compile Include="Modules\InviteModule.cs" />
     <Compile Include="Preconditions\RequireChannelAttribute.cs" />
     <Compile Include="Data\Database.cs" />

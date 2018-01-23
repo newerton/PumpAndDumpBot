@@ -35,7 +35,6 @@ namespace PumpAndDumpBot
             var _services = InstallServices();
             _services.GetService<ReliabilityService>();
             _services.GetService<CommandHandlerService>();
-            _services.GetService<VeteranService>();
             _services.GetService<InviteService>();
 
             _client.Log += Log;
@@ -57,7 +56,6 @@ namespace PumpAndDumpBot
                 .AddSingleton(_commands)
                 .AddSingleton<ReliabilityService>()
                 .AddSingleton<CommandHandlerService>()
-                .AddSingleton<VeteranService>()
                 .AddSingleton<InviteService>()
                 .AddSingleton<InteractiveService>()
                 .BuildServiceProvider();
