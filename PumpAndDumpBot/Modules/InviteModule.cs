@@ -18,11 +18,12 @@ namespace PumpAndDumpBot.Modules
         private static readonly List<Affiliate> _ranks = new List<Affiliate>()
         {
             new Affiliate(399769377194377216, 1),
-            new Affiliate(400361570959622144, 4),
-            new Affiliate(400361693672112128, 10),
-            new Affiliate(400362357412331523, 20),
-            new Affiliate(400362301481418752, 50),
-            new Affiliate(400362225317183489, 125)
+            new Affiliate(400361570959622144, 10),
+            new Affiliate(400361693672112128, 35),
+            new Affiliate(400362357412331523, 75),
+            new Affiliate(400362301481418752, 150),
+            new Affiliate(400362225317183489, 250),
+            new Affiliate(405756307564396574, 500)
         };
 
         [Command("invites", RunMode = RunMode.Async)]
