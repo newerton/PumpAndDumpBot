@@ -23,7 +23,7 @@ namespace PumpAndDumpBot.Modules
             new Affiliate(400362357412331523, 75),
             new Affiliate(400362301481418752, 150),
             new Affiliate(400362225317183489, 250),
-            new Affiliate(405756307564396574, 500)
+            new Affiliate(405756048331374592, 500)
         };
 
         [Command("invites", RunMode = RunMode.Async)]
@@ -31,6 +31,7 @@ namespace PumpAndDumpBot.Modules
         [Summary("Returns the total invites for this user.")]
         public async Task InvitesAsync()
         {
+            var roles = Context.Guild.Roles;
             try
             {
                 var author = Context.Message.Author as SocketGuildUser;
