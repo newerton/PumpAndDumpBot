@@ -45,7 +45,7 @@ namespace PumpAndDumpBot.Modules
                     $"**Author:** `{application.Owner}` [ID: {application.Owner.Id}]\n" +
                     $"**Library:** Discord.Net - Version: {DiscordConfig.Version}\n" +
                     $"**Total Channels:** {Context.Client.Guilds.Sum(g => g.Channels.Count())}\n" +
-                    $"**Total Users:** {Context.Client.Guilds.Sum(g => g.Users.Where(b => !b.IsBot).Count())}")
+                    $"**Total Users:** {Context.Client.Guilds.Sum(g => g.MemberCount - g.Users.Where(b => b.IsBot).Count())}")
                 .AddField("Process Info",
                     $"**Runtime:** {RuntimeInformation.FrameworkDescription} {RuntimeInformation.OSArchitecture}\n" +
                     $"**Heap Size:** {Math.Round(GC.GetTotalMemory(true) / (1024.0 * 1024.0), 2).ToString()}MB\n" +
